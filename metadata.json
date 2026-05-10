@@ -1,0 +1,14 @@
+{
+  "name": "ElevateAI - Resume & Portfolio Builder",
+  "description": "Premium AI-powered SaaS for building professional resumes, personal portfolios, and career branding assets.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "AI Resume Generation",
+    "Instant Portfolio Builder",
+    "Career Coaching",
+    "ATS Optimization"
+  ]
+}

@@ -1,0 +1,92 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Core user information and onboarding state",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "profession": { "type": "string" },
+        "experienceLevel": { "type": "string" },
+        "industry": { "type": "string" },
+        "location": { "type": "string" },
+        "careerGoals": { "type": "array", "items": { "type": "string" } },
+        "skills": { "type": "array", "items": { "type": "string" } },
+        "onboardingComplete": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "lastLogin": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    },
+    "Resume": {
+      "title": "Resume",
+      "description": "Structured resume data and metadata",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "templateId": { "type": "string" },
+        "content": { "type": "object" },
+        "atsScore": { "type": "number" },
+        "aiSuggestions": { "type": "array", "items": { "type": "string" } },
+        "isDefault": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title"]
+    },
+    "Portfolio": {
+      "title": "Portfolio",
+      "description": "Portfolio website configuration",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "slug": { "type": "string" },
+        "themeId": { "type": "string" },
+        "sections": { "type": "array" },
+        "isPublished": { "type": "boolean" },
+        "customDomain": { "type": "string" },
+        "analytics": { "type": "object" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "slug"]
+    },
+    "Project": {
+      "title": "Project",
+      "description": "A project showcased by the user",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "techStack": { "type": "array", "items": { "type": "string" } },
+        "imageUrl": { "type": "string" },
+        "links": { "type": "object" },
+        "order": { "type": "number" }
+      },
+      "required": ["userId", "title"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Individual user profiles"
+    },
+    "/users/{userId}/resumes/{resumeId}": {
+      "schema": "Resume",
+      "description": "Resumes created by the user"
+    },
+    "/users/{userId}/portfolios/{portfolioId}": {
+      "schema": "Portfolio",
+      "description": "Portfolio configurations for the user"
+    },
+    "/users/{userId}/projects/{projectId}": {
+      "schema": "Project",
+      "description": "Projects for resume/portfolio display"
+    }
+  }
+}

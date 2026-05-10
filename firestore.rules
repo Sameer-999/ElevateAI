@@ -1,0 +1,80 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Global Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+    function incoming() {
+      return request.resource.data;
+    }
+    function existing() {
+      return resource.data;
+    }
+
+    // Entity Validations
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email']) &&
+             data.uid == request.auth.uid &&
+             data.email is string &&
+             data.email.size() <= 256;
+    }
+
+    function isValidResume(data) {
+      return data.userId == request.auth.uid &&
+             data.title is string && data.title.size() <= 100;
+    }
+
+    function isValidPortfolio(data) {
+      return data.userId == request.auth.uid &&
+             data.slug is string && data.slug.size() <= 50;
+    }
+
+    function isValidProject(data) {
+      return data.userId == request.auth.uid &&
+             data.title is string && data.title.size() <= 100;
+    }
+
+    // Collection: Users
+    match /users/{userId} {
+      allow get: if isSignedIn();
+      allow list: if false; // Users shouldn't be listable
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      allow update: if isOwner(userId) && isValidUser(incoming()) && (
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'displayName', 'photoURL', 'profession', 'experienceLevel', 
+          'industry', 'location', 'careerGoals', 'skills', 'onboardingComplete', 'lastLogin'
+        ])
+      );
+    }
+
+    // Collection: Resumes
+    match /users/{userId}/resumes/{resumeId} {
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId) && isValidResume(incoming());
+    }
+
+    // Collection: Portfolios
+    match /users/{userId}/portfolios/{portfolioId} {
+      allow read: if true; // Portfolios are public
+      allow write: if isOwner(userId) && isValidPortfolio(incoming());
+    }
+
+    // Collection: Projects
+    match /users/{userId}/projects/{projectId} {
+      allow read: if true;
+      allow write: if isOwner(userId) && isValidProject(incoming());
+    }
+  }
+}
