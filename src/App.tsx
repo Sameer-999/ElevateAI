@@ -17,6 +17,7 @@ import Onboarding from './pages/Onboarding';
 import ResumeBuilder from './pages/ResumeBuilder';
 import PortfolioBuilder from './pages/PortfolioBuilder';
 import CareerCoach from './pages/CareerCoach';
+import Settings from './pages/Settings';
 
 export default function App() {
   const [user, setUser] = useState<any>(null);
@@ -74,6 +75,10 @@ export default function App() {
         <Route 
           path="/coach" 
           element={user ? <CareerCoach /> : <Navigate to="/auth" />} 
+        />
+        <Route 
+          path="/settings" 
+          element={user ? <Settings /> : <Navigate to="/auth" />} 
         />
       </Routes>
     </Router>

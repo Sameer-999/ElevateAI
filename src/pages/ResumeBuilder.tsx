@@ -14,10 +14,12 @@ import {
   Eye, 
   Layout as LayoutIcon,
   Zap,
-  Target
+  Target,
+  UserCheck
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
+import BrandKitModal from '../components/BrandKitModal';
 
 export default function ResumeBuilder() {
   const { id } = useParams();
@@ -25,9 +27,10 @@ export default function ResumeBuilder() {
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState('personal');
   const [saving, setSaving] = useState(false);
+  const [isBrandKitOpen, setIsBrandKitOpen] = useState(false);
   const [resumeData, setResumeData] = useState<any>({
     title: 'Untitled Resume',
-    personal: { name: '', email: '', phone: '', location: '', website: '', summary: '' },
+    personal: { name: '', email: '', phone: '', location: '', website: '', summary: '', profession: '' },
     experience: [],
     education: [],
     skills: [],
@@ -45,7 +48,16 @@ export default function ResumeBuilder() {
       const docRef = doc(db, 'users', auth.currentUser.uid, 'resumes', id);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
-        setResumeData(docSnap.data());
+        const data = docSnap.data();
+        setResumeData((prev: any) => ({
+          ...prev,
+          ...data,
+          personal: { ...prev.personal, ...(data.personal || {}) },
+          experience: data.experience || [],
+          education: data.education || [],
+          skills: data.skills || [],
+          projects: data.projects || []
+        }));
       }
       setLoading(false);
     };
@@ -127,7 +139,7 @@ export default function ResumeBuilder() {
         {/* Left: Editor */}
         <div className="w-[450px] border-r border-zinc-100 flex flex-col bg-white shrink-0 shadow-[10px_0_30px_rgba(0,0,0,0.02)] z-10">
           <div className="flex border-b border-zinc-50 bg-zinc-50/30">
-            {['personal', 'experience', 'education', 'skills'].map((tab) => (
+            {['personal', 'experience', 'education', 'skills', 'projects'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveSection(tab)}
@@ -156,15 +168,23 @@ export default function ResumeBuilder() {
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Profile Summary</label>
-                    <button 
-                      onClick={async () => {
-                        const summary = await generateProfessionalSummary(resumeData);
-                        setResumeData({...resumeData, personal: {...resumeData.personal, summary}});
-                      }}
-                      className="text-[10px] flex items-center gap-1 text-blue-600 hover:text-blue-700 font-bold uppercase tracking-widest"
-                    >
-                      <Sparkles size={10} /> AI Generate
-                    </button>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => setIsBrandKitOpen(true)}
+                        className="text-[10px] flex items-center gap-1 text-blue-600 hover:text-blue-700 font-bold uppercase tracking-widest bg-blue-50 px-2 py-1 rounded-md"
+                      >
+                        <UserCheck size={10} /> Brand Kit
+                      </button>
+                      <button 
+                        onClick={async () => {
+                          const summary = await generateProfessionalSummary(resumeData);
+                          setResumeData({...resumeData, personal: {...resumeData.personal, summary}});
+                        }}
+                        className="text-[10px] flex items-center gap-1 text-zinc-400 hover:text-black font-bold uppercase tracking-widest"
+                      >
+                        <Sparkles size={10} /> Fast Gen
+                      </button>
+                    </div>
                   </div>
                   <textarea 
                     value={resumeData.personal.summary}
@@ -178,6 +198,12 @@ export default function ResumeBuilder() {
 
             {activeSection === 'experience' && (
                <div className="space-y-8">
+                 {resumeData.experience.length === 0 && (
+                   <div className="p-8 border-2 border-dashed border-zinc-100 rounded-3xl text-center space-y-3 bg-zinc-50/50">
+                     <p className="text-sm font-bold text-zinc-400 uppercase tracking-widest">No work experience yet?</p>
+                     <p className="text-xs text-zinc-400">If you're a student or first-time job seeker, focus on your <button onClick={() => setActiveSection('projects')} className="text-blue-600 hover:underline">Projects</button> or Academic achievements.</p>
+                   </div>
+                 )}
                  {resumeData.experience.map((exp: any, idx: number) => (
                    <div key={idx} className="p-6 rounded-3xl bg-zinc-50 border border-zinc-100 relative group transition-all hover:bg-white hover:shadow-xl hover:shadow-zinc-200/50">
                      <button 
@@ -248,43 +274,222 @@ export default function ResumeBuilder() {
                </div>
             )}
 
+            {activeSection === 'education' && (
+               <div className="space-y-8">
+                 {resumeData.education.map((edu: any, idx: number) => (
+                   <div key={idx} className="p-6 rounded-3xl bg-zinc-50 border border-zinc-100 relative group transition-all hover:bg-white hover:shadow-xl hover:shadow-zinc-200/50">
+                     <button 
+                        onClick={() => {
+                          const newEdu = [...resumeData.education];
+                          newEdu.splice(idx, 1);
+                          setResumeData({...resumeData, education: newEdu});
+                        }}
+                        className="absolute -top-3 -right-3 w-8 h-8 bg-white border border-red-100 text-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-lg hover:bg-red-50"
+                      >
+                       <Trash2 size={14} />
+                      </button>
+                     <div className="space-y-4">
+                       <input 
+                         placeholder="School / University"
+                         value={edu.school}
+                         onChange={(e) => {
+                           const newEdu = [...resumeData.education];
+                           newEdu[idx].school = e.target.value;
+                           setResumeData({...resumeData, education: newEdu});
+                         }}
+                         className="w-full bg-transparent font-bold focus:outline-none placeholder:text-zinc-300 text-lg tracking-tight"
+                       />
+                       <input 
+                         placeholder="Degree / Certification"
+                         value={edu.degree}
+                         onChange={(e) => {
+                           const newEdu = [...resumeData.education];
+                           newEdu[idx].degree = e.target.value;
+                           setResumeData({...resumeData, education: newEdu});
+                         }}
+                         className="w-full bg-transparent text-sm font-semibold text-zinc-500 focus:outline-none placeholder:text-zinc-300"
+                       />
+                       <div className="grid grid-cols-2 gap-4">
+                          <input 
+                            placeholder="Duration (e.g. 2018 - 2022)"
+                            value={edu.duration}
+                            onChange={(e) => {
+                              const newEdu = [...resumeData.education];
+                              newEdu[idx].duration = e.target.value;
+                              setResumeData({...resumeData, education: newEdu});
+                            }}
+                            className="bg-transparent text-[11px] font-bold uppercase tracking-wider text-zinc-400 focus:outline-none placeholder:text-zinc-200"
+                          />
+                          <input 
+                            placeholder="Location"
+                            value={edu.location}
+                            onChange={(e) => {
+                              const newEdu = [...resumeData.education];
+                              newEdu[idx].location = e.target.value;
+                              setResumeData({...resumeData, education: newEdu});
+                            }}
+                            className="bg-transparent text-[11px] font-bold uppercase tracking-wider text-zinc-400 focus:outline-none placeholder:text-zinc-200 text-right"
+                          />
+                       </div>
+                     </div>
+                   </div>
+                 ))}
+                 <button 
+                  onClick={() => setResumeData({...resumeData, education: [...resumeData.education, { school: '', degree: '', duration: '', location: '' }]})}
+                  className="w-full py-6 border-2 border-dashed border-zinc-100 rounded-3xl flex flex-col items-center justify-center gap-3 hover:border-zinc-300 hover:bg-zinc-50 transition-all text-zinc-300 hover:text-zinc-500 font-bold"
+                 >
+                   <div className="p-2 bg-zinc-50 rounded-lg group-hover:bg-white transition-colors">
+                    <Plus size={20} />
+                   </div>
+                   <span className="text-[11px] uppercase tracking-widest">Add Education</span>
+                 </button>
+               </div>
+            )}
+
             {activeSection === 'skills' && (
-              <div className="space-y-6">
-                 <div className="flex flex-wrap gap-2">
-                    {resumeData.skills.map((skill: string) => (
-                      <span key={skill} className="px-4 py-2 bg-zinc-50 border border-zinc-100 rounded-xl text-xs font-bold text-zinc-600 flex items-center gap-2 shadow-sm">
-                        {skill}
-                        <button 
-                          onClick={() => setResumeData({...resumeData, skills: resumeData.skills.filter((s: string) => s !== skill)})}
-                          className="text-zinc-300 hover:text-red-500"
-                        >×</button>
-                      </span>
-                    ))}
+              <div className="space-y-8">
+                 <div className="grid grid-cols-1 gap-4">
+                    {(resumeData.skills || []).map((skill: any, idx: number) => {
+                      const isString = typeof skill === 'string';
+                      const skillName = isString ? skill : (skill.name || '');
+                      const skillLevel = isString ? 'Intermediate' : (skill.level || 'Intermediate');
+                      
+                      return (
+                        <div key={idx} className="p-4 bg-zinc-50 border border-zinc-100 rounded-2xl flex items-center justify-between group">
+                          <div className="flex-1 space-y-1">
+                            <input 
+                              value={skillName}
+                              onChange={(e) => {
+                                const newSkills = [...resumeData.skills];
+                                newSkills[idx] = { name: e.target.value, level: skillLevel };
+                                setResumeData({...resumeData, skills: newSkills});
+                              }}
+                              className="bg-transparent font-bold text-sm focus:outline-none w-full"
+                              placeholder="Skill name..."
+                            />
+                            <div className="flex gap-4">
+                              {['Beginner', 'Intermediate', 'Expert'].map((lvl) => (
+                                <button
+                                  key={lvl}
+                                  onClick={() => {
+                                    const newSkills = [...resumeData.skills];
+                                    newSkills[idx] = { name: skillName, level: lvl };
+                                    setResumeData({...resumeData, skills: newSkills});
+                                  }}
+                                  className={cn(
+                                    "text-[9px] font-bold uppercase tracking-widest transition-all",
+                                    skillLevel === lvl 
+                                      ? "text-blue-600" 
+                                      : "text-zinc-400 hover:text-zinc-600"
+                                  )}
+                                >
+                                  {lvl}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          <button 
+                            onClick={() => {
+                              const newSkills = [...resumeData.skills];
+                              newSkills.splice(idx, 1);
+                              setResumeData({...resumeData, skills: newSkills});
+                            }}
+                            className="p-2 text-zinc-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all font-bold"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      );
+                    })}
                  </div>
-                 <div className="relative">
-                   <input 
-                      placeholder="Type a skill and press Enter"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          const v = (e.target as HTMLInputElement).value;
-                          if (v && !resumeData.skills.includes(v)) {
-                            setResumeData({...resumeData, skills: [...resumeData.skills, v]});
-                            (e.target as HTMLInputElement).value = '';
-                          }
-                        }
-                      }}
-                      className="w-full h-14 bg-white border border-zinc-200 rounded-2xl px-6 text-sm font-medium focus:ring-1 focus:ring-black focus:outline-none shadow-sm placeholder:text-zinc-300"
-                   />
-                   <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold text-zinc-300 uppercase tracking-widest pointer-events-none">Press Enter</div>
-                 </div>
+                 
+                 <button 
+                  onClick={() => setResumeData({...resumeData, skills: [...resumeData.skills, { name: '', level: 'Intermediate' }]})}
+                  className="w-full py-4 border-2 border-dashed border-zinc-100 rounded-2xl flex items-center justify-center gap-2 hover:border-zinc-300 hover:bg-zinc-50 transition-all text-zinc-300 hover:text-zinc-500 font-bold"
+                 >
+                   <Plus size={16} />
+                   <span className="text-[10px] uppercase tracking-widest">Add Skill</span>
+                 </button>
+              </div>
+            )}
+
+            {activeSection === 'projects' && (
+              <div className="space-y-8">
+                {resumeData.projects.map((proj: any, idx: number) => (
+                  <div key={idx} className="p-6 rounded-3xl bg-zinc-50 border border-zinc-100 relative group transition-all hover:bg-white hover:shadow-xl hover:shadow-zinc-200/50">
+                    <button 
+                       onClick={() => {
+                         const newProj = [...resumeData.projects];
+                         newProj.splice(idx, 1);
+                         setResumeData({...resumeData, projects: newProj});
+                       }}
+                       className="absolute -top-3 -right-3 w-8 h-8 bg-white border border-red-100 text-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-lg hover:bg-red-50"
+                     >
+                      <Trash2 size={14} />
+                     </button>
+                    <div className="space-y-4">
+                      <input 
+                        placeholder="Project Name (e.g. Portfolio App)"
+                        value={proj.name}
+                        onChange={(e) => {
+                          const newProj = [...resumeData.projects];
+                          newProj[idx].name = e.target.value;
+                          setResumeData({...resumeData, projects: newProj});
+                        }}
+                        className="w-full bg-transparent font-bold focus:outline-none placeholder:text-zinc-300 text-lg tracking-tight"
+                      />
+                      <div className="flex gap-4">
+                        <input 
+                          placeholder="Technologies (React, Firebase)"
+                          value={proj.tech}
+                          onChange={(e) => {
+                            const newProj = [...resumeData.projects];
+                            newProj[idx].tech = e.target.value;
+                            setResumeData({...resumeData, projects: newProj});
+                          }}
+                          className="flex-1 bg-transparent text-sm font-semibold text-blue-600 focus:outline-none placeholder:text-blue-200"
+                        />
+                        <input 
+                          placeholder="Link (Optional)"
+                          value={proj.link}
+                          onChange={(e) => {
+                            const newProj = [...resumeData.projects];
+                            newProj[idx].link = e.target.value;
+                            setResumeData({...resumeData, projects: newProj});
+                          }}
+                          className="w-32 bg-transparent text-[11px] font-bold text-zinc-400 focus:outline-none placeholder:text-zinc-200 text-right"
+                        />
+                      </div>
+                      <textarea 
+                       placeholder="Describe your role and impact..."
+                       value={proj.description}
+                       onChange={(e) => {
+                         const newProj = [...resumeData.projects];
+                         newProj[idx].description = e.target.value;
+                         setResumeData({...resumeData, projects: newProj});
+                       }}
+                       className="w-full h-24 bg-white border border-zinc-100 rounded-xl p-3 text-sm font-medium focus:ring-1 focus:ring-black transition-all resize-none shadow-sm placeholder:text-zinc-200"
+                      />
+                    </div>
+                  </div>
+                ))}
+                <button 
+                 onClick={() => setResumeData({...resumeData, projects: [...resumeData.projects, { name: '', tech: '', link: '', description: '' }]})}
+                 className="w-full py-6 border-2 border-dashed border-zinc-100 rounded-3xl flex flex-col items-center justify-center gap-3 hover:border-zinc-300 hover:bg-zinc-50 transition-all text-zinc-300 hover:text-zinc-500 font-bold"
+                >
+                  <div className="p-2 bg-zinc-50 rounded-lg group-hover:bg-white transition-colors">
+                   <Plus size={20} />
+                  </div>
+                  <span className="text-[11px] uppercase tracking-widest">Add Project</span>
+                </button>
               </div>
             )}
           </div>
         </div>
 
         {/* Right: Preview */}
-        <div className="flex-1 bg-zinc-100/50 overflow-y-auto p-12 flex justify-center custom-scrollbar">
-          <div className="w-[820px] min-h-[1160px] bg-white text-black p-20 shadow-2xl origin-top transition-all border border-zinc-100">
+        <div className="flex-1 bg-zinc-100/50 overflow-y-auto p-12 flex justify-center custom-scrollbar relative">
+          <div className="w-[820px] min-h-[1160px] bg-white text-black p-20 shadow-2xl origin-top transition-all border border-zinc-100 scale-[0.8] xl:scale-[0.85] 2xl:scale-100">
              {/* Modern Minimal Template */}
              <div className="max-w-3xl mx-auto space-y-12 font-sans">
                <header className="space-y-6 border-b border-zinc-100 pb-10">
@@ -325,7 +530,7 @@ export default function ResumeBuilder() {
                  <div className="grid grid-cols-[140px_1fr] gap-10">
                     <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-300 mt-1">Experience</h3>
                     <div className="space-y-10">
-                      {resumeData.experience.map((exp: any, i: number) => (
+                      {(resumeData.experience || []).map((exp: any, i: number) => (
                         <div key={i} className="space-y-3">
                             <div className="flex justify-between items-start">
                               <p className="font-bold text-lg leading-none tracking-tight">{exp.role || 'Job Position'}</p>
@@ -339,13 +544,78 @@ export default function ResumeBuilder() {
                  </div>
                </section>
 
+                {resumeData.projects && resumeData.projects.length > 0 && (
+                 <section className="space-y-10">
+                   <div className="grid grid-cols-[140px_1fr] gap-10">
+                     <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-300 mt-1">Highlighted Projects</h3>
+                     <div className="space-y-10">
+                       {(resumeData.projects || []).map((proj: any, i: number) => (
+                         <div key={i} className="space-y-3">
+                            <div className="flex justify-between items-start">
+                              <p className="font-bold text-lg leading-none tracking-tight">{proj.name || 'Project Title'}</p>
+                              {proj.link && <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-300">{proj.link}</span>}
+                            </div>
+                            <p className="text-xs font-bold text-blue-600 uppercase tracking-widest">{proj.tech || 'Technologies Used'}</p>
+                            <p className="text-[14px] leading-relaxed text-zinc-600 font-medium whitespace-pre-wrap">{proj.description || 'Description of what you built...'}</p>
+                         </div>
+                       ))}
+                     </div>
+                   </div>
+                 </section>
+                )}
+
+               {resumeData.education && resumeData.education.length > 0 && (
+                 <section className="space-y-10">
+                    <div className="grid grid-cols-[140px_1fr] gap-10">
+                        <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-300 mt-1">Education</h3>
+                        <div className="space-y-8">
+                          {(resumeData.education || []).map((edu: any, i: number) => (
+                            <div key={i} className="space-y-2">
+                                <div className="flex justify-between items-start">
+                                  <p className="font-bold text-[15px] tracking-tight">{edu.degree || 'Degree Title'}</p>
+                                  <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">{edu.duration || '2020 - 2024'}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest">{edu.school || 'University Name'}</p>
+                                  <span className="text-[9px] text-zinc-300 font-bold uppercase tracking-widest">{edu.location}</span>
+                                </div>
+                            </div>
+                          ))}
+                        </div>
+                    </div>
+                 </section>
+               )}
+
                {resumeData.skills.length > 0 && (
                  <section className="grid grid-cols-[140px_1fr] gap-10">
                     <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-300 mt-1">Foundations</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {resumeData.skills.map((skill: string) => (
-                        <span key={skill} className="px-3 py-1.5 bg-zinc-50 border border-zinc-100 text-black text-[10px] font-bold uppercase tracking-widest rounded-lg shadow-sm">{skill}</span>
-                      ))}
+                    <div className="grid grid-cols-2 gap-4">
+                      {(resumeData.skills || []).map((skill: any, i: number) => {
+                        const name = typeof skill === 'string' ? skill : skill.name;
+                        const level = typeof skill === 'string' ? null : skill.level;
+                        return (
+                          <div key={i} className="space-y-1">
+                            <p className="text-[11px] font-bold uppercase tracking-widest">{name}</p>
+                            {level && (
+                              <div className="flex gap-1">
+                                {[1, 2, 3].map(dot => (
+                                  <div 
+                                    key={dot} 
+                                    className={cn(
+                                      "h-1 w-4 rounded-full",
+                                      (level === 'Beginner' && dot <= 1) || 
+                                      (level === 'Intermediate' && dot <= 2) || 
+                                      (level === 'Expert' && dot <= 3)
+                                        ? "bg-blue-500" 
+                                        : "bg-zinc-100"
+                                    )} 
+                                  />
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                  </section>
                )}
@@ -353,6 +623,20 @@ export default function ResumeBuilder() {
           </div>
         </div>
       </div>
+
+      <AnimatePresence>
+        {isBrandKitOpen && (
+          <BrandKitModal 
+            isOpen={isBrandKitOpen} 
+            onClose={() => setIsBrandKitOpen(false)} 
+            userData={resumeData}
+            onApplySummary={(summary) => {
+              setResumeData({...resumeData, personal: {...resumeData.personal, summary}});
+              setIsBrandKitOpen(false);
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
