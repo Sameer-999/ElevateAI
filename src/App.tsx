@@ -8,6 +8,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { useEffect, useState } from 'react';
 import { auth, db } from './lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
+import { Analytics } from '@vercel/analytics/react';
 
 // Pages (to be created)
 import Landing from './pages/Landing';
@@ -81,6 +82,7 @@ export default function App() {
           element={user ? <Settings /> : <Navigate to="/auth" />} 
         />
       </Routes>
+      <Analytics />
     </Router>
   );
 }
